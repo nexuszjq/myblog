@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  
+
+  
+  <title>MySQL各种锁的基本概念 | Keep Learning</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
+  <meta name="description" content="乐观锁程序实现 版本号 时间戳  悲观锁全局锁 Flush tables with read lock (FTWRL)     表级锁表锁（MySQL layer） 加锁：lock tables … read&#x2F;write 解锁：unlock tables  当线程A lock tables t1 read，线程A和其他线程都只能读 t1，不能写t1当线程A lock tables t1 write">
+<meta property="og:type" content="article">
+<meta property="og:title" content="MySQL各种锁的基本概念">
+<meta property="og:url" content="https://nexuszjq.github.io/blog/2022/05/29/MySQL-Locks/index.html">
+<meta property="og:site_name" content="Keep Learning">
+<meta property="og:description" content="乐观锁程序实现 版本号 时间戳  悲观锁全局锁 Flush tables with read lock (FTWRL)     表级锁表锁（MySQL layer） 加锁：lock tables … read&#x2F;write 解锁：unlock tables  当线程A lock tables t1 read，线程A和其他线程都只能读 t1，不能写t1当线程A lock tables t1 write">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2022-05-29T07:34:56.000Z">
+<meta property="article:modified_time" content="2022-05-29T13:01:51.405Z">
+<meta property="article:author" content="Nexus">
+<meta name="twitter:card" content="summary">
+  
+    <link rel="alternate" href="/blog/atom.xml" title="Keep Learning" type="application/atom+xml">
+  
+  
+    <link rel="icon" href="/favicon.png">
+  
+  
+    <link href="//fonts.googleapis.com/css?family=Source+Code+Pro" rel="stylesheet" type="text/css">
+  
+  
+<link rel="stylesheet" href="/blog/css/style.css">
+
+<meta name="generator" content="Hexo 5.4.2"></head>
+
+<body>
+  <div id="container">
+    <div id="wrap">
+      <header id="header">
+  <div id="banner"></div>
+  <div id="header-outer" class="outer">
+    <div id="header-title" class="inner">
+      <h1 id="logo-wrap">
+        <a href="/blog/" id="logo">Keep Learning</a>
+      </h1>
+      
+    </div>
+    <div id="header-inner" class="inner">
+      <nav id="main-nav">
+        <a id="main-nav-toggle" class="nav-icon"></a>
+        
+          <a class="main-nav-link" href="/blog/">Home</a>
+        
+          <a class="main-nav-link" href="/blog/archives">Archives</a>
+        
+      </nav>
+      <nav id="sub-nav">
+        
+          <a id="nav-rss-link" class="nav-icon" href="/blog/atom.xml" title="RSS Feed"></a>
+        
+        <a id="nav-search-btn" class="nav-icon" title="Search"></a>
+      </nav>
+      <div id="search-form-wrap">
+        <form action="//google.com/search" method="get" accept-charset="UTF-8" class="search-form"><input type="search" name="q" class="search-form-input" placeholder="Search"><button type="submit" class="search-form-submit">&#xF002;</button><input type="hidden" name="sitesearch" value="https://nexuszjq.github.io/blog"></form>
+      </div>
+    </div>
+  </div>
+</header>
+      <div class="outer">
+        <section id="main"><article id="post-MySQL-Locks" class="article article-type-post" itemscope itemprop="blogPost">
+  <div class="article-meta">
+    <a href="/blog/2022/05/29/MySQL-Locks/" class="article-date">
+  <time datetime="2022-05-29T07:34:56.000Z" itemprop="datePublished">2022-05-29</time>
+</a>
+    
+  </div>
+  <div class="article-inner">
+    
+    
+      <header class="article-header">
+        
+  
+    <h1 class="article-title" itemprop="name">
+      MySQL各种锁的基本概念
+    </h1>
+  
+
+      </header>
+    
+    <div class="article-entry" itemprop="articleBody">
+      
+        <h1 id="乐观锁"><a href="#乐观锁" class="headerlink" title="乐观锁"></a>乐观锁</h1><h3 id="程序实现"><a href="#程序实现" class="headerlink" title="程序实现"></a>程序实现</h3><ul>
+<li>版本号</li>
+<li>时间戳</li>
+</ul>
+<h1 id="悲观锁"><a href="#悲观锁" class="headerlink" title="悲观锁"></a>悲观锁</h1><h2 id="全局锁"><a href="#全局锁" class="headerlink" title="全局锁"></a>全局锁</h2><ul>
+<li>Flush tables with read lock (FTWRL)  </li>
+</ul>
+<hr>
+<h2 id="表级锁"><a href="#表级锁" class="headerlink" title="表级锁"></a>表级锁</h2><h3 id="表锁（MySQL-layer）"><a href="#表锁（MySQL-layer）" class="headerlink" title="表锁（MySQL layer）"></a>表锁（MySQL layer）</h3><ul>
+<li>加锁：lock tables … read/write</li>
+<li>解锁：unlock tables</li>
+</ul>
+<p>当线程A lock tables t1 read，线程A和其他线程都只能读 t1，不能写t1<br>当线程A lock tables t1 write，线程A可以读写t1，其他线程不能读写t1</p>
+<hr>
+<h3 id="元数据锁（MySQL-layer）"><a href="#元数据锁（MySQL-layer）" class="headerlink" title="元数据锁（MySQL layer）"></a>元数据锁（MySQL layer）</h3><p>元数据锁MDL（metadata lock），元数据：指表结构</p>
+<ul>
+<li>CRUD（DML）：加 MDL 读锁</li>
+<li>表做结构变更（DDL）：加 MDL 写锁</li>
+</ul>
+<p><strong>兼容性</strong><br>读锁之间不互斥；读锁和写锁，写锁和写锁间互斥</p>
+<hr>
+<h3 id="意向锁（InnoDB）"><a href="#意向锁（InnoDB）" class="headerlink" title="意向锁（InnoDB）"></a>意向锁（InnoDB）</h3><h4 id="共享读锁（IS）"><a href="#共享读锁（IS）" class="headerlink" title="共享读锁（IS）"></a>共享读锁（IS）</h4><ul>
+<li>在给行记录加S锁时，会先自动给数据所在表加IS锁<h4 id="排他写锁（IX）"><a href="#排他写锁（IX）" class="headerlink" title="排他写锁（IX）"></a>排他写锁（IX）</h4></li>
+<li>在给行记录加X锁时，会先自动给数据所在表加IX锁</li>
+</ul>
+<p><strong>意向锁的作用</strong><br>事务A锁住了表中的一行，让这一行只能读（数据库自动给该表增加意向共享锁），不能写。<br>事务B申请整个表的写锁。</p>
+<ol>
+<li>判断表是否已被其他事务用表锁锁表</li>
+<li>发现表上有意向共享锁，说明表中有些行被共享行锁锁住了，因此，事务B申请表的写锁会被阻塞。</li>
+</ol>
+<p>如果没有意向锁则是这样的：</p>
+<ol>
+<li>判断表是否已被其他事务用表锁锁表</li>
+<li>判断表中的每一行是否已被行锁锁住。</li>
+</ol>
+<p>如果没有意向锁的话，则需要遍历所有整个表判断是否有行锁的存在，以免发生冲突。</p>
+<p>如果有了意向锁，只需要判断该意向锁与即将添加的表级锁是否兼容即可。因为意向锁的存在代表了，有行级锁的存在或者即将有行级锁的存在。因而无需遍历整个表，即可获取结果。 </p>
+<p><strong>兼容性</strong></p>
+<table>
+<thead>
+<tr>
+<th>是否兼容(表级)</th>
+<th>IS</th>
+<th>IX</th>
+<th>S</th>
+<th>X</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>IS</td>
+<td>是</td>
+<td>是</td>
+<td>是</td>
+<td>是</td>
+</tr>
+<tr>
+<td>IX</td>
+<td>是</td>
+<td>是</td>
+<td>否</td>
+<td>否</td>
+</tr>
+<tr>
+<td>S</td>
+<td>是</td>
+<td>否</td>
+<td>是</td>
+<td>否</td>
+</tr>
+<tr>
+<td>X</td>
+<td>否</td>
+<td>否</td>
+<td>否</td>
+<td>否</td>
+</tr>
+</tbody></table>
+<ol>
+<li>意向锁相互兼容，因为IX、IS只是表明申请更低层次级别元素（比如 page、记录）的X、S操作。</li>
+<li>表级S锁和X、IX锁不兼容：因为上了表级S锁后，不允许其他事务再加X锁。</li>
+<li>表级X锁和 IS、IX、S、X不兼容：因为上了表级X锁后，会修改数据，所以即使是行级排他锁，因为表级锁定的行肯定包括行级锁定的行，所以表级X和IX、X都不兼容。</li>
+<li>上了行级X锁后，<strong>行级X锁不会因为有别的事务上了IX而堵塞</strong>，MySQL是允许多个行级X锁同时存在的，只要他们不是针对相同的数据行。</li>
+</ol>
+<hr>
+<h2 id="行级锁（InnoDB）"><a href="#行级锁（InnoDB）" class="headerlink" title="行级锁（InnoDB）"></a>行级锁（InnoDB）</h2><p><strong>重点：InnoDB行级锁基于索引实现</strong></p>
+<p><strong>两阶段锁协议</strong></p>
+<ul>
+<li>定义：在 InnoDB 事务中，行锁是在需要的时候才加上的，但并不是不需要了就立刻释放，而是要等到事务结束时才释放。</li>
+<li>可重复读隔离级别下遵守两阶段提交，事务结束才释放锁。read-commited 语句执行完就释放“不满足条件的行”的行锁，而不是在事务结束的时候才释放。</li>
+</ul>
+<p>普通select语句默认不会加任何锁类型，是一致性读（MVCC），所以加锁不会阻塞普通select</p>
+<h4 id="共享读锁（S）"><a href="#共享读锁（S）" class="headerlink" title="共享读锁（S）"></a>共享读锁（S）</h4><ul>
+<li>手动加锁：select … lock in share mode（当前读）<br>使用索引时，为行锁；<br>未使用索引时，行锁会升级为表锁。</li>
+</ul>
+<h4 id="排他写锁（X）"><a href="#排他写锁（X）" class="headerlink" title="排他写锁（X）"></a>排他写锁（X）</h4><ul>
+<li>自动加锁：select for update （当前读）</li>
+<li>自动加锁：DML（insert、update、delete）</li>
+</ul>
+<p><strong>兼容性</strong></p>
+<ul>
+<li>读锁写锁间互斥，写锁写锁间互斥</li>
+<li>读锁读锁间兼容</li>
+</ul>
+<hr>
+<h3 id="行锁的具体实现："><a href="#行锁的具体实现：" class="headerlink" title="行锁的具体实现："></a>行锁的具体实现：</h3><h3 id="Record-Locks"><a href="#Record-Locks" class="headerlink" title="Record Locks"></a>Record Locks</h3><p><strong>记录锁，专门对索引项加锁</strong></p>
+<ol>
+<li>记录锁, 仅仅锁住索引记录的一行，在单条索引记录上加锁。</li>
+<li><strong>record lock锁住的永远是索引</strong>，而非记录本身，即使该表上没有任何索引，那么innodb会在后台创建一个隐藏的聚集主键索引，那么锁住的就是这个隐藏的聚集主键索引。</li>
+</ol>
+<p>所以说当一条sql没有走任何索引时，那么将会在每一条聚合索引后面加X锁，类似于表锁。</p>
+<hr>
+<h3 id="Gap-Locks"><a href="#Gap-Locks" class="headerlink" title="Gap Locks"></a>Gap Locks</h3><p><strong>间隙锁，对索引项之间间隙加锁</strong></p>
+<ol>
+<li>区间锁, 仅仅锁住一个索引区间，<strong>开区间</strong>：()。</li>
+<li>在索引记录之间的间隙中加锁，或者是在某一条索引记录之前或者之后加锁，并不包括该索引记录本身。比如在 1、2、3中，间隙锁的可能值有 (∞, 1)，(1, 2)，(2, ∞)，</li>
+<li>间隙锁可用于防止幻读，保证索引间的不会被插入数据</li>
+<li><strong>间隙锁在可重复读隔离级别下才会生效的</strong>。如果把隔离级别设置为读提交的话，就没有间隙锁了。</li>
+<li>间隙锁的引入，可能会导致同样的语句锁住更大的范围，影响了并发度，如果不需要可重复读的隔离级别，可以使用读提交隔离级别 + binlog_format=row</li>
+</ol>
+<p><strong>兼容性</strong></p>
+<ul>
+<li>跟间隙锁存在冲突关系的，是“往这个间隙中插入一个记录”这个操作。间隙锁之间都不存在冲突关系。</li>
+</ul>
+<hr>
+<h3 id="Next-Key-Locks"><a href="#Next-Key-Locks" class="headerlink" title="Next-Key Locks"></a>Next-Key Locks</h3><p><strong>临键锁，是前面两种的组合，对索引项以及之间的间隙加锁</strong></p>
+<ol>
+<li>record lock + gap lock, <strong>左开右闭区间</strong>：(]。</li>
+<li>默认情况下，innodb使用next-key locks来锁定记录。</li>
+<li>Next-Key Lock 的加锁过程是拆分为：加间隙锁和加行锁两段来执行的</li>
+<li>但当查询的索引含有唯一属性的时候，Next-Key Lock 会进行优化，将其降级为Record Lock，即仅锁住索引本身，不是范围。</li>
+<li>Next-Key Lock在不同的场景中会降级:</li>
+</ol>
+<table>
+<thead>
+<tr>
+<th>场景</th>
+<th>降级成的锁类型</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>使用唯一索引，精确匹配（=），且记录存在</td>
+<td>Record Lock</td>
+</tr>
+<tr>
+<td>使用唯一索引，精确匹配（=），且记录不存在</td>
+<td>Gap Lock</td>
+</tr>
+<tr>
+<td>使用唯一索引范围匹配（&lt; 和 &gt;）</td>
+<td>Record Lock + Gap Lock</td>
+</tr>
+</tbody></table>
+<hr>
+<h2 id="幻读相关"><a href="#幻读相关" class="headerlink" title="幻读相关"></a>幻读相关</h2><ul>
+<li>幻读指的是一个事务在前后两次查询同一个范围的时候，后一次查询看到了前一次查询没有看到的行。</li>
+<li>在可重复读隔离级别下，普通的查询是快照读，是不会看到别的事务插入的数据的。因此，幻读在“当前读”下才会出现。</li>
+<li>Gap 锁可以避免出现幻读</li>
+</ul>
+<hr>
+<h2 id="加锁规则"><a href="#加锁规则" class="headerlink" title="加锁规则"></a>加锁规则</h2><ol>
+<li>加锁的基本单位是 next-key lock。next-key lock 是前开后闭区间。</li>
+<li>查找过程中访问到的对象才会加锁。</li>
+<li>索引上的等值查询，给唯一索引加锁的时候，next-key lock 退化为行锁。</li>
+<li>索引上的等值查询，向右遍历时且最后一个值不满足等值条件的时候，next-key lock 退化为间隙锁。</li>
+<li>唯一索引上的范围查询会访问到不满足条件的第一个值为止。</li>
+</ol>
+
+      
+    </div>
+    <footer class="article-footer">
+      <a data-url="https://nexuszjq.github.io/blog/2022/05/29/MySQL-Locks/" data-id="cl3rcyssu0000m8vn4cq7f4rs" class="article-share-link">Share</a>
+      
+      
+    </footer>
+  </div>
+  
+    
+  
+</article>
+
+</section>
+        
+          <aside id="sidebar">
+  
+    
+
+  
+    
+
+  
+    
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Archives</h3>
+    <div class="widget">
+      <ul class="archive-list"><li class="archive-list-item"><a class="archive-list-link" href="/blog/archives/2022/05/">May 2022</a></li></ul>
+    </div>
+  </div>
+
+
+  
+    
+  <div class="widget-wrap">
+    <h3 class="widget-title">Recent Posts</h3>
+    <div class="widget">
+      <ul>
+        
+          <li>
+            <a href="/blog/2022/05/29/MySQL-Locks/">MySQL各种锁的基本概念</a>
+          </li>
+        
+      </ul>
+    </div>
+  </div>
+
+  
+</aside>
+        
+      </div>
+      <footer id="footer">
+  
+  <div class="outer">
+    <div id="footer-info" class="inner">
+      &copy; 2022 Nexus<br>
+      Powered by <a href="http://hexo.io/" target="_blank">Hexo</a>
+    </div>
+  </div>
+</footer>
+    </div>
+    <nav id="mobile-nav">
+  
+    <a href="/blog/" class="mobile-nav-link">Home</a>
+  
+    <a href="/blog/archives" class="mobile-nav-link">Archives</a>
+  
+</nav>
+    
+
+<script src="//ajax.googleapis.com/ajax/libs/jquery/2.0.3/jquery.min.js"></script>
+
+
+  
+<link rel="stylesheet" href="/blog/fancybox/jquery.fancybox.css">
+
+  
+<script src="/blog/fancybox/jquery.fancybox.pack.js"></script>
+
+
+
+
+<script src="/blog/js/script.js"></script>
+
+
+
+
+  </div>
+</body>
+</html>
